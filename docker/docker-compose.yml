@@ -1,0 +1,17 @@
+version: '2'
+services:
+  php:
+    build:
+        context: ./conf
+        dockerfile: php.dockerfile
+    volumes:
+      - "./../:/srv/turbo"
+      - "./conf/php/conf.d/xdebug.ini:/usr/local/etc/php/conf.d/xdebug.ini"
+      - "./conf/php/conf.d/timezone.ini:/usr/local/etc/php/conf.d/timezone.ini"
+    labels:
+      name: "TurboParser - PHP"
+    working_dir: "/srv/turbo"
+    environment:
+      PHP_IDE_CONFIG: "serverName=TURBO"
+      APP_ENV: dev
+
