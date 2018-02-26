@@ -1,19 +1,71 @@
-# Put parameters here that don't need to change on each machine where the app is deployed
-# https://symfony.com/doc/current/best_practices/configuration.html#application-related-configuration
-parameters:
-
 services:
-    # default configuration for services in *this* file
     _defaults:
-        autowire: true      # Automatically injects dependencies in your services.
-        autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
         public: false       # Allows optimizing the container by removing unused services; this also means
                             # fetching services directly from the container via $container->get() won't work.
                             # The best practice is to be explicit about your dependencies anyway.
 
-    # makes classes in src/ available to be used as services
-    # this creates a service per class whose id is the fully-qualified class name
-    App\:
-        resource: '../src/*'
-        exclude: '../src/{Entity,Migrations,Tests,Kernel.php}'
+    turbo.serializer.encoder.impl.json.encode:
+      class: 'Symfony\Component\Serializer\Encoder\JsonEncode'
+      arguments:
+        0: 480
+  
+    turbo.serializer.encoder.impl.json.decode:
+      class: 'Symfony\Component\Serializer\Encoder\JsonDecode'
+      arguments:
+        0: false
+  
+    turbo.serializer.encoder.json:
+      class: 'Symfony\Component\Serializer\Encoder\JsonEncoder'
+      arguments:
+        0: '@turbo.serializer.encoder.impl.json.encode'
+        1: '@turbo.serializer.encoder.impl.json.decode'
 
+    turbo.denormalizer.job.text:
+      class: App\JobProcessor\Serializer\TextProcessingJobDenormalizer
+
+    turbo.normalizer.job_response:
+      class: App\JobProcessor\Serializer\JobResponseNormalizer
+
+    turbo.serializer:
+      class: Symfony\Component\Serializer\Serializer
+      arguments:
+        0:
+          - '@turbo.denormalizer.job.text'
+          - '@turbo.normalizer.job_response'
+        1:
+          - '@turbo.serializer.encoder.json'
+
+    turbo.text.method.striptags:
+      class: App\JobProcessor\ProcessingMethods\StripTagsMethod
+
+    turbo.text.method.removespaces:
+      class: App\JobProcessor\ProcessingMethods\RemoveSpacesMethod
+
+    turbo.text.method.spaces2eol:
+      class: App\JobProcessor\ProcessingMethods\SpacesToEOLMethod
+
+    turbo.text.method.removesymbols:
+      class: App\JobProcessor\ProcessingMethods\RemoveSymbolsMethod
+      arguments: ['.,/!@#$%&*(']
+
+    turbo.text.method.2number:
+      class: App\JobProcessor\ProcessingMethods\ToNumberMethod
+
+    turbo.text.method.factory:
+      class: App\JobProcessor\TextProcessingMethodFactory
+      calls:
+        - [addTextProcessingMethod, ['@turbo.text.method.striptags', 'stripTags']]
+        - [addTextProcessingMethod, ['@turbo.text.method.removespaces', 'removeSpaces']]
+        - [addTextProcessingMethod, ['@turbo.text.method.spaces2eol', 'replaceSpacesToEol']]
+        - [addTextProcessingMethod, ['@turbo.text.method.removesymbols', 'removeSymbols']]
+        - [addTextProcessingMethod, ['@turbo.text.method.2number', 'toNumber']]
+
+    turbo.text.processor:
+      public: true
+      class: App\JobProcessor\TextProcessor
+      arguments: ['@turbo.text.method.factory']
+
+    turboparser:
+      public: true
+      class: App\Services\TurboTestService
+      arguments:  ['@turbo.serializer', '@turbo.text.processor']
