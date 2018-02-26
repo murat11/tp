@@ -2,7 +2,8 @@
 
 namespace App\Services;
 
-use App\JobProcessor;
+use App\JobProcessor\TextProcessingJob;
+use App\JobProcessor\TextProcessor;
 use Symfony\Component\Serializer\SerializerInterface;
 
 class TurboTestService
@@ -13,16 +14,11 @@ class TurboTestService
     private $serializer;
 
     /**
-     * @var JobProcessor\JobProcessorInterface
+     * @var TextProcessor
      */
     private $jobProcessor;
 
-    /**
-     * TurboTestService constructor.
-     * @param SerializerInterface $serializer
-     * @param JobProcessor\JobProcessorInterface $jobProcessor
-     */
-    public function __construct(SerializerInterface $serializer, JobProcessor\JobProcessorInterface $jobProcessor)
+    public function __construct(SerializerInterface $serializer, TextProcessor $jobProcessor)
     {
         $this->serializer = $serializer;
         $this->jobProcessor = $jobProcessor;
@@ -34,9 +30,9 @@ class TurboTestService
      */
     public function doProcessing(String $jobString): String
     {
-        /** @var JobProcessor\JobInterface $job */
-        $job = $this->serializer->deserialize($jobString, JobProcessor\JobInterface::class, 'json');
-        /** @var JobProcessor\ResponseInterface $response */
+        /** @var TextProcessingJob $job */
+        $job = $this->serializer->deserialize($jobString, TextProcessingJob::class, 'json');
+        /** @var TextProcessor $response */
         $response = $this->jobProcessor->processJob($job);
         $output = $this->serializer->serialize($response, 'json');
 
